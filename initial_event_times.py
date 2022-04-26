@@ -118,3 +118,5 @@ for h in detector_data.keys():
 df['ones'] = 1
 df['event_times'] = df['event_times (mpl)'].apply(dates.num2date)
 df.reset_index(inplace=True)
+
+print('number of events detected:', df.shape)
