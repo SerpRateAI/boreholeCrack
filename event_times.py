@@ -3,12 +3,15 @@ This module identifies the initial arrival times picked by
 amplitude peak picking
 """
 
+# TODO : remove the day141_raw from here, it doesnt need to be here
+
 import numpy as np
 import obspy
 from hydrophone_data_processing import load, useful_variables, plotting, signal_processing
 import scipy.signal as signal
 import pandas as pd
 import matplotlib.dates as dates
+import obspy.signal.trigger as trigger
 
 day141_paths = useful_variables.make_hydrophone_data_paths(borehole='a', year=2019, julian_day=141)
 day141 = load.import_corrected_data_for_single_day(day141_paths)
@@ -17,7 +20,8 @@ day141_snapshot = day141.slice(starttime=obspy.UTCDateTime('2019-05-21T07:30:00'
 
 # day141_snapshot.filter(type='highpass', corners=4, zerophase=True, freq=20)
 day141_raw = day141_snapshot.copy()
-day141_snapshot.filter(type='highpass', corners=1, zerophase=False, freq=40)
+# day141_snapshot.filter(type='highpass', corners=1, zerophase=False, freq=40)
+day141_snapshot.filter(type='highpass', corners=1, zerophase=False, freq=50)
 
 
 detector_data = {
@@ -62,7 +66,7 @@ def get_event_window(event_time, hydrophone):
     end_window_edge = 0.25
     starttime = event_time + start_window_edge
     endtime = event_time + end_window_edge
-    return day141_snapshot[detector_data[hydrophone]['obspy_idx']].slice(starttime=starttime, endtime=endtime)
+    return day141_snapshot[detector_data[hydrophone]['obspy_idx']].slice(starttime=starttime, endtime=endtime).copy()
 
 def get_event_window_raw(event_time, hydrophone):
     """
@@ -118,5 +122,18 @@ for h in detector_data.keys():
 df['ones'] = 1
 df['event_times'] = df['event_times (mpl)'].apply(dates.num2date)
 df.reset_index(inplace=True)
+
+p_arrival_times = []
+
+event_ids = df.index
+for event_id in event_ids:
+    event_meta = df.iloc[event_id]
+    event = get_event_window(event_meta['event_times (abs)'], hydrophone=event_meta['hphone_idx'])
+    event.taper(type='hann', max_percentage=0.5)
+    aic = trigger.aic_simple(event.data)
+    aic_t = pd.to_datetime(dates.num2date(event.times('matplotlib')[aic.argmin()]))
+    p_arrival_times.append(aic_t)
+
+df['p_arrival_hphone_idx'] = p_arrival_times
 
 print('number of events detected:', df.shape)
