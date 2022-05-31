@@ -3,7 +3,9 @@ This module identifies the initial arrival times picked by
 amplitude peak picking
 """
 
-# TODO : remove the day141_raw from here, it doesnt need to be here
+# TODO : remove the day141_raw from here, it doesnt need to be here <- this is false it does need to be here according to the functions
+# TODO : function out the hanning window AIC picker
+# TODO : write documentation for how all this tsuff is working
 
 import numpy as np
 import obspy
@@ -134,6 +136,7 @@ for event_id in event_ids:
     aic_t = pd.to_datetime(dates.num2date(event.times('matplotlib')[aic.argmin()]))
     p_arrival_times.append(aic_t)
 
+# TODO : pick a better name than this
 df['p_arrival_hphone_idx'] = p_arrival_times
 
 print('number of events detected:', df.shape)
