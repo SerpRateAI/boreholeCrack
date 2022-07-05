@@ -93,10 +93,10 @@ class Grid:
         --------------------
         grid : numpy 3D array
         """
-        x = np.arange(-self.radius, self.radius, self.gridscale)
-        y = np.arange(0, self.depth, self.gridscale)
-        z = np.arange(-self.radius, self.radius, self.gridscale)
-        return np.meshgrid(x, y, z)
+        self.x = np.arange(-self.radius, self.radius, self.gridscale)
+        self.y = np.arange(0, self.depth, self.gridscale)
+        self.z = np.arange(-self.radius, self.radius, self.gridscale)
+        return np.meshgrid(self.x, self.y, self.z)
     
     def calc_distance_grid(self, hydrophone_location):
         """
@@ -151,7 +151,7 @@ class Grid:
         midpoint = self.radius
         return self.get_grid_slice(grid=grid, dimension='y', slice=midpoint)
     
-    def calc_travel_time_for_grid_point(self, i, j, k, good_picks, event_times, uncertainty=0.1):
+    def _calc_travel_time_for_grid_point(self, i, j, k, good_picks, event_times, uncertainty=0.1):
         """
         Calculates the root mean square of the estimate of the location based on the estimated travel time from grid point (i, j, k) to each hydrophone.
         
@@ -214,47 +214,96 @@ class Grid:
         rms_ijk = np.sqrt(evec.transpose().dot(weight_matrix).dot(evec) / np.sum(np.diag(weight_matrix)))[0][0]
         return rms_ijk
     
-    def calc_travel_times_serial(self, ijk, good_picks, event_times, uncertainty=0.1):
+    def _calc_travel_times_serial(self, ijk, good_picks, event_times, uncertainty=0.1):
         """
-        docstring
+        Calculates the RMS grid serialized.
+        
+        Wrapper function for calc_travel_time_for_grid_point to apply to all grid points.
+        
+        Returns
+        --------------------
+        None.
         """
         i_s, j_s, k_s = ijk
         
-        self.rms_grid = np.zeros_like(self.t['h3'])
+        self.rms_grid = np.zeros_like(self.theoretical_t['h3'])
         
         for i in i_s:
             for j in j_s:
                 for k in k_s:
-                    self.rms_grid[i, j, k] = calc_travel_time_for_grid_point(i=i, j=j, k=k, good_picks=good_picks, event_times=event_times, uncertainty=uncertainty)
+                    self.rms_grid[i, j, k] = self._calc_travel_time_for_grid_point(i=i, j=j, k=k, good_picks=good_picks, event_times=event_times, uncertainty=uncertainty)
     
-    def calc_travel_times_multiprocessing(self):
+    def _calc_travel_times_multiprocessing(self):
         """
         docstring
         """
     
-    def calc_travel_times(self, method, centered):
+    def calc_travel_times(self, event, method, centered):
         """
-        docstring
+        Wrapper function to calculate travel times.
+        
+        Parameters
+        ------------------
+        method : str
+            toggle switch to calculate RMS grid in a serial fashion or in parallel. Options: 'serial', 'multiprocessing'.
+        centered : binary
+            toggle switch to calculate on full 3d grid or on a centered slice.
         """
         
-        i_s = np.arange(0, self.t['h3'].shape[0], 1)
+        good_picks = event['good_picks']
+        event_times = event['event_times']
         
-        if centered.lower() == 'y':
+        i_s = np.arange(0, self.theoretical_t['h3'].shape[0], 1)
+        
+        if centered == True:
             # only calculate on the mid point slice
             j_s = (self.radius,)
-        elif centered.lower() == 'n':
-            j_s = np.arange(0, self.t['h3'].shape[1], 1)
+            
         else:
-            raise ValueError('{c} is not a "y" or "n"'.format(c=centered))
+            j_s = np.arange(0, self.theoretical_t['h3'].shape[1], 1)   
                              
-        k_s = np.arange(0, self.t['h3'].shape[2], 2)
+        k_s = np.arange(0, self.theoretical_t['h3'].shape[2], 1)
                              
         if method == 'serial':
-            self.calc_travel_times_serial(ijk=(i_s, j_s, k_s))
+            self._calc_travel_times_serial(ijk=(i_s, j_s, k_s), good_picks=good_picks, event_times=event_times, uncertainty=0.1)
                              
         elif method == 'multiprocessing':
-            self.calc_travel_times_multiprocessing()
+            self._calc_travel_times_multiprocessing()
                              
         else:
             raise ValueError('{m} is not a method for calculating rms.'.format(m=method))
         print('rms_grid calculated.')
+        
+    def calc_location(self):
+        """
+        returns the location derived from the minimized RMS grid
+        
+        Returns
+        ------------------
+        location : tuple
+            (radius, depth)
+        """
+        # centered_matrix_location = np.unravel_index(self.rms_grid[:, 50, :].argmin(), self.rms_grid[:, 50, :].shape)
+        centered_matrix_location = np.unravel_index(self.rms_grid[:, self.radius, :].argmin(), self.rms_grid[:, self.radius, :].shape)
+        
+        radius = self.x[centered_matrix_location[1]]
+        depth = -self.y[centered_matrix_location[0]]
+        return radius, depth
+        
+    def plot_rms_grid(self):
+        """
+        makes matplotlib pcolormesh plot of RMS grid
+        """
+        import matplotlib.pyplot as plt
+        
+        fig, ax = plt.subplots(figsize=(12, 10))
+        
+        # cbar = ax.pcolormesh(self.x, -self.y, self.rms_grid[:,50,:], cmap='nipy_spectral_r', shading='auto')
+        cbar = ax.pcolormesh(self.x, -self.y, self.rms_grid[:,self.radius,:], cmap='nipy_spectral_r', shading='auto')
+        fig.colorbar(cbar, label='Root Mean Squared Error')
+        
+        hdepths = np.array(list(self.hydrophone_locations.values()))
+        ax.plot(np.zeros_like(hdepths), -hdepths, color='black', marker='s')
+        hlabels = self.hydrophone_locations.keys()
+        for h, y in zip(hlabels, hdepths):
+            ax.text(s=h, x=0, y=-y)
