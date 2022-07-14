@@ -274,6 +274,20 @@ class Grid:
             raise ValueError('{m} is not a method for calculating rms.'.format(m=method))
         print('rms_grid calculated.')
         
+#     def calc_rms_min(self, centered=True):
+#         """
+#         calculates rms minimum from rms grid.
+        
+#         assumes
+        
+#         Returns
+#         ------------------
+#         rms_min : float
+#             minimum of rms_grid.
+#         """
+#         if centered == True:
+#             return self.rms_grid[:, self.radius, :].min()
+        
     def calc_location(self):
         """
         returns the location derived from the minimized RMS grid
