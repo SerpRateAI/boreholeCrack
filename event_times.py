@@ -23,10 +23,16 @@ day141_snapshot = day141.slice(starttime=obspy.UTCDateTime('2019-05-21T07:30:00'
 # day141_snapshot.filter(type='highpass', corners=4, zerophase=True, freq=20)
 day141_raw = day141_snapshot.copy()
 # day141_snapshot.filter(type='highpass', corners=1, zerophase=False, freq=40)
-# day141_snapshot.filter(type='highpass', corners=1, zerophase=False, freq=50)
+day141_snapshot.filter(type='highpass', corners=1, zerophase=False, freq=50)
 # day141_snapshot.filter(type='highpass', corners=1, zerophase=False, freq=10)
 
 
+#######
+#######
+# here is where you are cheating because you know that there is a 
+# downward migration of the cracking events so you simply used your
+# eyes to look at when is the maximum magnitudes on each hydrophone
+# so you detect across which ones are arriving first
 detector_data = {
     'h3':{
         'start':obspy.UTCDateTime('2019-05-21T07:35:00Z')
