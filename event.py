@@ -204,11 +204,11 @@ class Event:
         if argmin == 0:
             # print(second_idx_above, 'is next')
             self.second_hydrophone_id = 'h'+str(second_idx_above+1)
-            print('my dumb ass self made "above" ID is:', self.second_hydrophone_id)
+            # print('my dumb ass self made "above" ID is:', self.second_hydrophone_id)
         elif argmin == 1:
             # print(second_idx_below, 'is next')
             self.second_hydrophone_id = 'h'+str(second_idx_below+1)
-            print('my dumb ass self made "below" ID is:', self.second_hydrophone_id)
+            # print('my dumb ass self made "below" ID is:', self.second_hydrophone_id)
 
         else:
             raise ValueError(argmin, 'should be 0 or 1')
@@ -216,8 +216,8 @@ class Event:
     def get_depth(self, hA, hB):
         A_idx = hydrophones[hA]['idx']
         B_idx = hydrophones[hB]['idx']
-        print(hA, hydrophones[hA])
-        print(hB, hydrophones[hB])
+        # print(hA, hydrophones[hA])
+        # print(hB, hydrophones[hB])
         
         # picking_method = {'aic':self.aic_t
         #                  ,'ltasta':self.ltasta_t}
@@ -225,14 +225,14 @@ class Event:
         t_A = num2date(self.aic_t[A_idx])
         t_B = num2date(self.aic_t[B_idx])
         
-        print('t_A', t_A)
-        print('t_B', t_B)
+#         print('t_A', t_A)
+#         print('t_B', t_B)
         
         dt = (t_A - t_B).total_seconds()
-        print('dt:',dt)
+        # print('dt:',dt)
         
         dz_A = 35 + 0.5 * self.velocity_model * dt
-        print('dz_A:', dz_A)
-        print(hA, hydrophones[hA]['depth'])
+        # print('dz_A:', dz_A)
+        # print(hA, hydrophones[hA]['depth'])
         
         return hydrophones[hA]['depth'] + dz_A
