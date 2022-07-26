@@ -33,7 +33,7 @@ class Event:
         self.stream = self.get_waveforms(starttime=self.starttime)
         self.mpl_times = [tr.times('matplotlib') for tr in self.stream]
         
-        self.aic_t, self.aics = self.aic_pick()
+        # self.aic_t, self.aics = self.aic_pick()
         
         self._get_second_arrival_hydrophone()
         self.depth = self.get_depth(hA=self.first_hydrophone_id, hB=self.second_hydrophone_id)
