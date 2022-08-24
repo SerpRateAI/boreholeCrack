@@ -3,7 +3,8 @@ import obspy.signal.trigger as trigger
 import matplotlib.pyplot as plt
 import numpy as np
 from hydrophone_data_processing import load, preprocessing, tempmatch, useful_variables, plotting
-from matplotlib.dates import num2date
+# from matplotlib.dates import num2date
+import matplotlib.dates as dates
 import event_times as iet
 import itertools
 
@@ -27,6 +28,8 @@ class Event:
         
         self.id = id
         self.velocity_model = velocity_model
+        self._max_dx = 70 # meters spacing between hydrophones
+        self._max_dt = self._max_dx / self.velocity_model
         _event = iet.df.iloc[self.id]
         self.starttime = _event['event_times (abs)']
         self.first_hydrophone_id = _event['hphone_idx']
@@ -83,8 +86,12 @@ class Event:
 
         # finds minimum and returns index for aic scores
         # aic_t_idx = [aic.argmin() for aic in aics]
-        diffs = [np.diff(aic) for aic in aics]
+        # diffs = [np.diff(aic) for aic in aics]
+        # diffs = [np.diff(aic, n=20) for aic in aics]
+        diffs = [np.diff(aic, n=1) for aic in aics]
         maxes = [np.argmax(diff) for diff in diffs]
+        
+        # print(maxes)
 
         # uses minimum index to retrieve the timestamp
         # aic_t = [self.stream[n].times('matplotlib')[i] for n, i in enumerate(aic_t_idx)]
@@ -148,6 +155,50 @@ class Event:
         
         ax.plot((0,), -self.depth, marker='*', color='red', markersize=15)
         return fig, ax
+    
+#     def _get_second_arrival_hydrophone(self):
+        
+#         if self.first_hydrophone_id in ['h1', 'h2', 'h3']:
+#             self.first_hydrophone_id = 'h3'
+#             self.second_hydrophone_id = 'h4'
+#             return None
+        
+#         elif self.first_hydrophone_id == 'h6':
+#             self.first_hydrophone_id = 'h5'
+#             self.second_hydrophone_id = 'h6'
+#             return None
+        
+#         elif self.first_hydrophone_id in ['h4', 'h5']:
+#             # get list index for first hydrophone
+#             h_Aidx = hydrophones[self.first_hydrophone_id]['idx']
+#             # get the arrival times in datetime format from the aic
+#             # picker
+#             times = np.array(dates.num2date(np.array(self.aic_t)))
+            
+#             # get the arrival time for thei first hydrophone
+#             # t_A = times[hydrophones[self.first_hydrophone_id]['idx']]
+#             t_A = times[h_Aidx]
+            
+#             # take the difference between all the arrival times
+#             # and the arrival time for the first hydrophone
+#             # tdiff = np.array([t.total_seconds() for t in (ta - times)])
+#             tdiff = np.array([t.total_seconds() for t in (t_A - times)])
+            
+#             # if the time diffrence is greater then the maximum difference
+#             # then the other hydrophone is in the pair
+            
+#             if np.abs(tdiff[h_Aidx-1]) > self._max_dt:
+                
+#                 self.second_hydrophone_id = 'h'+str(h_Aidx+1)
+                
+#             else:
+#                 self.second_hydrophone_id = 'h'+str(h_Aidx-1)
+                
+            
+#         else:
+#             raise ValueError('nothing works.')
+            
+            
 
     def _get_second_arrival_hydrophone(self):
         
@@ -157,12 +208,19 @@ class Event:
             return None
         
         elif self.first_hydrophone_id == 'h4':
-            self._hydrophone_above = 'h3'
-            self._hydrophone_below = 'h5'
+            # self._hydrophone_above = 'h3'
+            # self._hydrophone_below = 'h5'
+            # self.second_hydrophone_id = 'h3'
+            self.second_hydrophone_id = 'h5'
+            return None
             
         elif self.first_hydrophone_id == 'h5':
-            self._hydrophone_above = 'h4'
-            self._hydrophone_below = 'h6'
+            # self._hydrophone_above = 'h4'
+            # self._hydrophone_below = 'h6'
+            # self.second_hydrophone_id = 'h6'
+            self.first_hydrophone_id = 'h4'
+            self.second_hydrophone_id = 'h5'
+            return None
             
         elif self.first_hydrophone_id == 'h6':
             self.second_hydrophone_id = 'h5'
@@ -171,32 +229,35 @@ class Event:
         else:
             raise ValueError('this is not a hydrophone ID:{}'.format(self.first_hydrophone_id))
             
-        first_idx = hydrophones[self.first_hydrophone_id]['idx']
-        second_idx_above = hydrophones[self._hydrophone_above]['idx']
-        second_idx_below = hydrophones[self._hydrophone_below]['idx']
+#         first_idx = hydrophones[self.first_hydrophone_id]['idx']
+#         second_idx_above = hydrophones[self._hydrophone_above]['idx']
+#         second_idx_below = hydrophones[self._hydrophone_below]['idx']
         
-        above_tdelta = (num2date(self.aic_t[first_idx]) - num2date(self.aic_t[second_idx_above])).total_seconds()
-        below_tdelta = (num2date(self.aic_t[first_idx]) - num2date(self.aic_t[second_idx_below])).total_seconds()
+#         above_tdelta = (num2date(self.aic_t[first_idx]) - num2date(self.aic_t[second_idx_above])).total_seconds()
+#         below_tdelta = (num2date(self.aic_t[first_idx]) - num2date(self.aic_t[second_idx_below])).total_seconds()
         
-        # the minimum time distance is the closer one and therefore the next arrival
-        argmin = np.argmin([above_tdelta, below_tdelta])
+#         # the minimum time distance is the closer one and therefore the next arrival
+#         argmin = np.argmin([above_tdelta, below_tdelta])
 
-        if argmin == 0:
-            self.second_hydrophone_id = 'h'+str(second_idx_above+1)
-        elif argmin == 1:
-            self.second_hydrophone_id = 'h'+str(second_idx_below+1)
+#         if argmin == 0:
+#             self.second_hydrophone_id = 'h'+str(second_idx_above+1)
+#         elif argmin == 1:
+#             self.second_hydrophone_id = 'h'+str(second_idx_below+1)
 
-        else:
-            raise ValueError(argmin, 'should be 0 or 1')
+#         else:
+#             raise ValueError(argmin, 'should be 0 or 1')
             
     def get_depth(self, hA, hB):
         A_idx = hydrophones[hA]['idx']
         B_idx = hydrophones[hB]['idx']
 
-        t_A = num2date(self.aic_t[A_idx])
-        t_B = num2date(self.aic_t[B_idx])
+        # t_A = num2date(self.aic_t[A_idx])
+        t_A = dates.num2date(self.aic_t[A_idx])
+        # t_B = num2date(self.aic_t[B_idx])
+        t_B = dates.num2date(self.aic_t[B_idx])
         
         dt = (t_A - t_B).total_seconds()
+        # print('the dt is:', dt)
         
         dz_A = 35 + 0.5 * self.velocity_model * dt
 
