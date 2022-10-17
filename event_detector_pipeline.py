@@ -14,13 +14,12 @@ import obspy.signal.trigger as trigger
 ## data for day 141
 swarm_starttime = obspy.UTCDateTime('2019-05-21T07:30:00')
 swarm_endtime = obspy.UTCDateTime('2019-05-21T08:38:30')
+
 hydrophone_metadata = {
     'h1':{
         # start and end identifies the start time of the swarm where the amplitude magnitude is the highest
         'start':obspy.UTCDateTime('2019-05-21T07:35:00Z')
         ,'end':obspy.UTCDateTime('2019-5-21T07:48:00Z')
-       # obspy_idx is the index within the stream for this data (all data is sorted from top to bottom of the borehole this way in lists)
-        ,'obspy_idx':0
         # depth of the hydrophone
         ,'depth':30
         ,'velocity_model':1750
@@ -28,7 +27,6 @@ hydrophone_metadata = {
     ,    'h2':{
         'start':obspy.UTCDateTime('2019-05-21T07:35:00Z')
         ,'end':obspy.UTCDateTime('2019-5-21T07:48:00Z')
-        ,'obspy_idx':1
         ,'depth':100        
         ,'velocity_model':1750
 
@@ -36,7 +34,6 @@ hydrophone_metadata = {
     ,    'h3':{
         'start':obspy.UTCDateTime('2019-05-21T07:35:00Z')
         ,'end':obspy.UTCDateTime('2019-5-21T07:48:00Z')
-        ,'obspy_idx':2
         ,'depth':170        
         ,'velocity_model':1750
 
@@ -44,21 +41,19 @@ hydrophone_metadata = {
     ,'h4':{
         'start':obspy.UTCDateTime('2019-05-21T07:48:00Z')
         ,'end':obspy.UTCDateTime('2019-5-21T08:07:00Z')
-        ,'obspy_idx':3
         ,'depth':240
         ,'velocity_model':1750
     }
     ,'h5':{
         'start':obspy.UTCDateTime('2019-05-21T08:07:00Z')
         ,'end':obspy.UTCDateTime('2019-5-21T08:34:00Z')
-        ,'obspy_idx':4
+        # ,'end':obspy.UTCDateTime('2019-5-21T08:38:00Z')
         ,'depth':310
         ,'velocity_model':1750
     }
     ,'h6':{
         'start':obspy.UTCDateTime('2019-05-21T08:34:00Z')
         ,'end':obspy.UTCDateTime('2019-5-21T08:38:00Z')
-       ,'obspy_idx':5
         ,'depth':380
         ,'velocity_model':1750
     }
@@ -74,31 +69,20 @@ class Event:
         self.velocity_model = velocity_model
         self._max_dx = 70 # meters spacing between hydrophones
         self._max_dt = self._max_dx / self.velocity_model
-        # _event = df_picks.iloc[id]
-        # self.starttime = _event['event_times (abs)']
-        # self.starttime = starttime
-        # print(starttime)
-        # print(dates.num2date(starttime))
         starttime = dates.num2date(starttime)
         self.starttime = obspy.UTCDateTime(starttime)
-        # print(self.starttime)
-        # self.first_hydrophone_id = _event['hphone_idx']
         self.first_hydrophone_id = init_first_hphone
         self.stream = self.get_waveforms(starttime=self.starttime)
-        # print(self.stream)
-        # self.mpl_times = [tr.times('matplotlib') for tr in self.stream]
         
         self.aic_t, self.aics = self.aic_pick()
-        # print(self.aic_t)
+        
         self._get_first_second_hydrophones()
-        # self._get_second_arrival_hydrophone()
-        # self.arrival_time = self.aic_t
-        self.first_hphone_label = 'h'+str(self.first_hydrophone_id)
-        self.second_hphone_label = 'h'+str(self.second_hydrophone_id)
         
         self.hphone1_time = self.aic_t[self.first_hydrophone_id]
         self.hphone2_time = self.aic_t[self.second_hydrophone_id]
-        # self.depth = self.get_depth(hA=self.first_hydrophone_id, hB=self.second_hydrophone_id)
+        print(dates.num2date(self.hphone2_time))
+        # the problem happens after here...
+        
         self.get_depth()
 
     def get_waveforms(self, starttime):
@@ -153,99 +137,36 @@ class Event:
         aic_t = [self.stream[n].times('matplotlib')[i] for n, i in enumerate(maxes)]
 
         return aic_t, aics
-        
-    def plot(self, kind):
-        if kind == 'waveforms':
-            return self._plot_waveforms_with_aic()
-        if kind == 'event depth':
-            return self._plot_event_depth()
-    
-    def _plot_waveforms_with_aic(self):
-        """
-        plots the waveforms with the AIC scores and AIC picks
-        for the each hydrophone
-        
-        Parameters
-        ----------------
-        None
-        
-        Return
-        ----------------
-        fig : matplotlib.pyplot.Figure
-            matplotlib Figure
-        axes : numpy.array
-            array of matplotlib.pyplot.Axes axes
-        """
-        fig, axes = plotting.plot_waveforms(self.stream, color='black')
-        for n, ax in enumerate(axes):
-            ax2 = ax.twinx()
-            t = self.stream[n].times('matplotlib')
-            aic = self.aics[n]
-            ax2.plot(t, aic, color='red')
-            ax.plot((self.aic_t[n], self.aic_t[n]), (-2000, 2000), color='dodgerblue')
-        return fig, axes
-    
-    def _plot_event_depth(self):
-        """
-        Plots the depth profile for the event
-        """
-        x = np.zeros(6)
-        h_depths = -1 * np.array([hydrophones[h]['depth'] for h in hydrophones])
-
-        hA_depth = h_depths[hydrophones[self.first_hydrophone_id]['idx']]
-        hB_depth = h_depths[hydrophones[self.second_hydrophone_id]['idx']]
-        
-        fig, ax = plt.subplots(figsize=(5, 15))
-        
-        # plot hydrophone cable axis
-        ax.plot((0, 0), (0, -400), color='black')
-        ax.plot(x, h_depths, marker='s', color='black')
-        ax.plot((0, 0), (hA_depth, hB_depth), marker='s', color='limegreen', markersize=10, linewidth=5)
-
-        ax.set_yticks(h_depths)
-        
-        # make a label for each hydrophone
-        for n, h in enumerate(h_depths):
-            ax.text(s='h{n}'.format(n=n+1), x=0.005, y=h)
-        
-        ax.plot((0,), -self.depth, marker='*', color='red', markersize=15)
-        return fig, ax
 
     def _get_first_second_hydrophones(self):
         # we skip the first two hydrophones because they are always useless and often can have AICs that come in the very beginning
         sorted_aic = np.argsort(self.aic_t[2:])
         # we add 2 because np.argsort returns the index of the sorted array and because we skip the first two hydrophones we chnage the indices
-        # print(self.aic_t)
-        # print(sorted_aic)
         self.first_hydrophone_id = sorted_aic[0] + 2
-        # self.first_hydrophone_id = sorted_aic[0]
         self.second_hydrophone_id = sorted_aic[1] + 2
-        # self.second_hydrophone_id = sorted_aic[1]
 
             
     # def get_depth(self, hA, hB):
     def get_depth(self):
         t_A = dates.num2date(self.hphone1_time)
         t_B = dates.num2date(self.hphone2_time)
-        # print(t_A, t_B, (t_A - t_B).total_seconds())
         
         dt = (t_A - t_B).total_seconds()
-        # print(dt)
         
         sign = self.first_hydrophone_id - self.second_hydrophone_id
-        # print(sign)
+        # sign = -(self.first_hydrophone_id - self.second_hydrophone_id)
         
         dz_phone = np.min([self.first_hydrophone_id, self.second_hydrophone_id])
-        dz_phone_label = 'h' + str(dz_phone)
+        # dz_phone_label = 'h' + str(dz_phone)
+        dz_phone_label = 'h' + str(dz_phone+1)
         
         hydrophone_depth = hydrophone_metadata[dz_phone_label]['depth']
-        # print(hydrophone_depth)
         
         dz = 35 - 0.5 * dt * self.velocity_model * sign
-        # print(dz)
+        # dz = 35 - 0.5 * dt * self.velocity_model
         
         z = dz + hydrophone_depth
-        # print(z)
+        # z = dz - hydrophone_depth
         
         self.depth = z
 
@@ -260,23 +181,29 @@ if __name__ == '__main__':
     # converts to pascals
     # flips the sign on hydrophone 3 if there it is borehole B due to wiring problem
     waveforms = load.import_corrected_data_for_single_day(paths=paths)
-
+    print('loading data from:', paths)
     # filter and transform data
 
     ## trim data to be only for swarm times
     waveforms.trim(starttime=swarm_starttime, endtime=swarm_endtime)
-
+    print('trimming data to be between:\n', swarm_starttime, '\n', swarm_endtime)
+    
     ## 50hz high pass filter
     waveforms.filter(type='highpass', corners=1, zerophase=False, freq=50)
+    print('applying 50Hz, corners=1, no zerophase, high pass filter')
     
     ## make copy for precision detection later
     waveforms_copy = waveforms.copy()
+    print('making copy of data')
 
     ## square amplitude
     for n, tr in enumerate(waveforms):
         waveforms[n].data = tr.data**2
 
+    print('squaring amplitude of data')
+    
     ## peak finder
+    ## finds peaks in datat for each hydrophone
     peak_times = {}
     for n, tr in enumerate(waveforms):
         hydrophone_id = 'h' + str(n+1)
@@ -285,15 +212,24 @@ if __name__ == '__main__':
         tr_trim = tr.slice(starttime=hydrophone_metadata[hydrophone_id]['start']
                            ,endtime=hydrophone_metadata[hydrophone_id]['end'])
         t = tr_trim.times('matplotlib')
+        print('trimming data for detection on', hydrophone_id, 'with starttime \n'
+              ,hydrophone_metadata[hydrophone_id]['start']
+              ,'\n and end time \n'
+              ,hydrophone_metadata[hydrophone_id]['end']
+             )
 
         # apply peak finding algorithm
         idx, props = signal.find_peaks(tr_trim.data, height=0.25, distance=250)
+        print('finding peaks in squared data')
 
         # record initial event times for each peak detected for each hydrophone
         peak_times[hydrophone_id] = np.array(t[idx])
 
     ### 
-
+    print(peak_times.keys())
+    # print(peak_times['h6'])
+    for k in peak_times.keys():
+        print('hydrophone', k, 'number of events:', len(peak_times[k]))
     ## store initial picks in dataframe
     
     df_picks = pd.DataFrame()
@@ -309,8 +245,13 @@ if __name__ == '__main__':
                      }, index=index
                     )
         index_start = n_events
+        print('hydrophone', k, 'number of events:', rows.shape)
         df_picks = pd.concat([df_picks, rows])
         
+    print('storing initial peaks in dataframe')
+    print('number of initial events detected:', df_picks.shape)
+    print('first event:', dates.num2date(df_picks.init_arrival_time.min()))
+    print('last event:', dates.num2date(df_picks.init_arrival_time.max()))
     # return to raw data to make closer picks
     
     ## create function for multiprocessing
@@ -330,26 +271,41 @@ if __name__ == '__main__':
             ,'first_hydrophone':e.first_hydrophone_id
             ,'second_hydrophone':e.second_hydrophone_id
             ,'arrival_time':e.aic_t[e.first_hydrophone_id]
+            ,'first_arrival':dates.num2date(e.hphone1_time)
+            ,'second_arrival':dates.num2date(e.hphone2_time)
+            ,'dt':(dates.num2date(e.hphone1_time) - dates.num2date(e.hphone2_time)).total_seconds()
         }
         return event
 
     ## multiprocess do over events to get all event data
-    from multiprocess import Pool
+    print('calculating precision peaks')
+    rows = []
+    idx = np.arange(0, df_picks.shape[0], 1)
+    # for id in df_picks.index.values:
+    for id in idx:
+        print('calculating event', id)
+        rows.append(do(id=id))
+    # rows = [do(id=id) for id in df_picks.index.values]
+#     from multiprocess import Pool
     
-    pool = Pool(10)
+#     pool = Pool(10)
     
-    rows = pool.map(do, df_picks.index.values)
+#     rows = pool.map(do, df_picks.index.values)
     
-    pool.close()
+#     pool.close()
     
     # df_precision = pd.concat(rows)
     df_precision = pd.DataFrame(rows)
-    
+    df_precision.to_csv('precision.csv')
     
     ## make dataframe of event times, depths
     
     df = df_picks.join(df_precision)
+    print('final number of events:', df.shape)
+    
+    print('first event time:', df.first_arrival.min())
+    print('last event time:', df.first_arrival.max())
 
     ## write dataframe to file
-    
+    print('writing picks to file')
     df.to_csv('hmmm.csv')
