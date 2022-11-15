@@ -74,7 +74,8 @@ class Event:
         self.first_hydrophone_id = init_first_hphone
         self.stream = self.get_waveforms(starttime=self.starttime)
         
-        self.aic_t, self.aics = self.aic_pick()
+        # self.aic_t, self.aics = self.aic_pick()
+        self.maxes, self.aic_t, self.aics = self.aic_pick()
         
         self._get_first_second_hydrophones()
         
@@ -136,7 +137,8 @@ class Event:
         # uses minimum index to retrieve the timestamp
         aic_t = [self.stream[n].times('matplotlib')[i] for n, i in enumerate(maxes)]
 
-        return aic_t, aics
+        # return aic_t, aics
+        return maxes, aic_t, aics
 
     def _get_first_second_hydrophones(self):
         # we skip the first two hydrophones because they are always useless and often can have AICs that come in the very beginning
@@ -164,6 +166,8 @@ class Event:
         
         dz = 35 - 0.5 * dt * self.velocity_model * sign
         # dz = 35 - 0.5 * dt * self.velocity_model
+        
+        self.relative_depth = dz
         
         z = dz + hydrophone_depth
         # z = dz - hydrophone_depth
@@ -264,10 +268,15 @@ if __name__ == '__main__':
                   , velocity_model=1750
                  )
         # print(e.depth)
+        # print(e.aics)
         event = {
             'id':id
             ,'depth':e.depth
+            ,'relative_depth':e.relative_depth
             ,'aic_t':e.aic_t
+            # ,'aics':e.aics
+            ,'aics':list(e.aics[0])
+            ,'aic_maxes':e.maxes
             ,'first_hydrophone':e.first_hydrophone_id
             ,'second_hydrophone':e.second_hydrophone_id
             ,'arrival_time':e.aic_t[e.first_hydrophone_id]
