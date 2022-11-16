@@ -273,6 +273,7 @@ if __name__ == '__main__':
             'id':id
             ,'depth':e.depth
             ,'relative_depth':e.relative_depth
+            # TODO : create radius calculations in event class
             ,'aic_t':e.aic_t
             # ,'aics':e.aics
             ,'aics':list(e.aics[0])
