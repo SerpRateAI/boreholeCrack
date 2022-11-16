@@ -20,11 +20,8 @@ day141 = load.import_corrected_data_for_single_day(day141_paths)
 
 day141_snapshot = day141.slice(starttime=obspy.UTCDateTime('2019-05-21T07:30:00'), endtime=obspy.UTCDateTime('2019-05-21T08:38:30'))
 
-# day141_snapshot.filter(type='highpass', corners=4, zerophase=True, freq=20)
 day141_raw = day141_snapshot.copy()
-# day141_snapshot.filter(type='highpass', corners=1, zerophase=False, freq=40)
 day141_snapshot.filter(type='highpass', corners=1, zerophase=False, freq=50)
-# day141_snapshot.filter(type='highpass', corners=1, zerophase=False, freq=10)
 
 
 #######
