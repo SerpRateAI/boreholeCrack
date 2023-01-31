@@ -63,7 +63,8 @@ class Event:
     """
     Data holder class for cracking event from hydrophone
     """
-    def __init__(self, id, starttime, init_first_hphone, waveforms, velocity_model=1750):        
+    def __init__(self, id, starttime, init_first_hphone, waveforms, velocity_model=1750):
+        # INITIALIZE DATA
         self.id = id
         self.data = waveforms
         self.velocity_model = velocity_model
@@ -74,17 +75,22 @@ class Event:
         self.first_hydrophone_id = init_first_hphone
         self.stream = self.get_waveforms(starttime=self.starttime)
         
-        # self.aic_t, self.aics = self.aic_pick()
+        # DEPTH CALCULATION
         self.maxes, self.aic_t, self.aics = self.aic_pick()
         
         self._get_first_second_hydrophones()
         
         self.hphone1_time = self.aic_t[self.first_hydrophone_id]
         self.hphone2_time = self.aic_t[self.second_hydrophone_id]
-        print(dates.num2date(self.hphone2_time))
-        # the problem happens after here...
         
         self.get_depth()
+        
+        # RADIUS CALCULATION
+        self.get_pwaveforms()
+        self.get_aicp()
+        self.calc_radius()
+        
+        
 
     def get_waveforms(self, starttime):
         """
@@ -107,6 +113,16 @@ class Event:
         trimmed = self.data.copy().trim(starttime=starttime, endtime=endtime)
         trimmed.taper(type='hann', max_percentage=0.5)
         return trimmed
+    
+    def get_pwaveforms(self):
+        """
+        Creates class variables for p arrrival estimation
+        """
+        window_start = self.starttime - 0.2
+        window_end = self.starttime + 0.3
+        self.p_waveforms = self.data.copy().trim(starttime=window_start, endtime=window_end)
+        self.p_waveforms.filter(type='highpass', freq=200, zerophase=False, corners=1)
+        
 
     def aic_pick(self):
         """
@@ -139,6 +155,16 @@ class Event:
 
         # return aic_t, aics
         return maxes, aic_t, aics
+    
+    def get_aicp(self):
+        """
+        Creates variables to calculate aic for parrival time. Also calculates parrival time
+        """
+        self.aic_p = trigger.aic_simple(self.p_waveforms[self.first_hydrophone_id])
+        # t = self.p_waveforms[self.first_hydrophone].times('matplotlib')
+        t = self.p_waveforms[self.first_hydrophone_id].times('matplotlib')
+        self.parrival = t[np.argmin(self.aic_p)]
+        self.parrival = dates.num2date(self.parrival)
 
     def _get_first_second_hydrophones(self):
         # we skip the first two hydrophones because they are always useless and often can have AICs that come in the very beginning
@@ -173,6 +199,33 @@ class Event:
         # z = dz - hydrophone_depth
         
         self.depth = z
+        
+    # def calc_radius(self):
+    #     """
+    #     calculates radial distance event is from borehole in meters.
+    #     """
+    #     # relative_depth = self.depth - hydrophone_metadata['h'+str(self.first_hydrophone+1)]['depth']
+    #     relative_depth = self.depth - hydrophone_metadata['h'+str(self.first_hydrophone_id+1)]['depth']
+    #     self.radius = np.sqrt(
+    #         abs(
+    #         # self.velocity_model**2 * (self.first_arrival - self.parrival)**2 - relative_depth**2
+    #         # self.velocity_model**2 * (self.hphone1_time - self.parrival)**2 - relative_depth**2
+    #         self.velocity_model**2 * (dates.num2date(self.hphone1_time) - self.parrival).total_seconds()**2 - relative_depth**2
+    #         )
+    #     )
+    def calc_radius(self):
+        """
+        calculates radial distance event is from borehole in meters
+        """
+        vrock = 4500 # m/s 5500 default
+        vtm = self.velocity_model
+        dz = self.depth - hydrophone_metadata['h'+str(self.first_hydrophone_id+1)]['depth']
+        
+        mode_t = dates.num2date(self.hphone1_time)
+        dt = (mode_t - self.parrival).total_seconds()
+        
+        self.radius = - 0.5 * (dz**2 - ((dt - dz * vtm)/(vrock))**2) * ((vrock)/(dt - dz * vtm))
+        
 
 if __name__ == '__main__':
     import sys
@@ -273,7 +326,7 @@ if __name__ == '__main__':
             'id':id
             ,'depth':e.depth
             ,'relative_depth':e.relative_depth
-            # TODO : create radius calculations in event class
+            ,'radius':e.radius
             ,'aic_t':e.aic_t
             # ,'aics':e.aics
             ,'aics':list(e.aics[0])
@@ -284,6 +337,7 @@ if __name__ == '__main__':
             ,'first_arrival':dates.num2date(e.hphone1_time)
             ,'second_arrival':dates.num2date(e.hphone2_time)
             ,'dt':(dates.num2date(e.hphone1_time) - dates.num2date(e.hphone2_time)).total_seconds()
+            ,'parrival':e.parrival
         }
         return event
 
