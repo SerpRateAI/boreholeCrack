@@ -1,5 +1,21 @@
 """
 This script presents the entire pipeline for locating events and calculating their depths in the raw data
+
+# HOW TO USE
+
+This script generates a single catalog for a single day's worth of events.
+
+To run you should open the terminal and type:
+
+python event-pipeline.py <day number>
+
+The <day number> argument should be known to you as a day there are many events based on visual inspection of the raw waveforms.
+
+This will call a bunch of meta data from the config.py file. This metadata tells what raw data to select for the particular day number. If you pick a day number not found in config.py the script will exit as it it will have nothing to do.
+
+This script will then run and produce two CSV files called precision.csv and hmmm.csv. Ignore hmm.csv. All data is stored in precision.csv.
+
+You can then go and look at the notebook day-141-188-197-211-viz which visualizes all the data from the catalog generated in this script.
 """
 
 import numpy as np
