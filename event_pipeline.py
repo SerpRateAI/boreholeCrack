@@ -30,13 +30,14 @@ import sys
 # TODO : import config
 import config
 
-args = sys.argv
-day_number = args[1]
+# args = sys.argv
+# day_number = args[1]
 
-swarm_starttime = config.swarm_starttime[day_number]
-swarm_endtime = config.swarm_endtime[day_number]
+# swarm_starttime = config.swarm_starttime[day_number]
+# swarm_endtime = config.swarm_endtime[day_number]
 
-hydrophone_metadata = config.hydrophone_metadata[day_number]
+# hydrophone_metadata = config.hydrophone_metadata[day_number]
+hydrophone_metadata = config.hydrophone_metadata['141']
 
 
 class Event:
@@ -192,12 +193,21 @@ class Event:
         mode_t = dates.num2date(self.hphone1_time)
         dt = (mode_t - self.parrival).total_seconds()
         
-        self.radius = - 0.5 * (dz**2 - ((dt - dz * vtm)/(vrock))**2) * ((vrock)/(dt - dz * vtm))
+        # self.radius = - 0.5 * (dz**2 - ((dt - dz * vtm)/(vrock))**2) * ((vrock)/(dt - dz * vtm))
+        self.radius =  np.sqrt(vrock**2 * dt**2 - dz**2)
         
 
 if __name__ == '__main__':
     import sys
+    
     args = sys.argv
+    day_number = args[1]
+
+    swarm_starttime = config.swarm_starttime[day_number]
+    swarm_endtime = config.swarm_endtime[day_number]
+
+    hydrophone_metadata = config.hydrophone_metadata[day_number]
+
     # print(args)
     # import raw data
     # paths = useful_variables.make_hydrophone_data_paths(borehole='a', year=2019, julian_day=141)
