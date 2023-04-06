@@ -212,6 +212,7 @@ if __name__ == '__main__':
     # import raw data
     # paths = useful_variables.make_hydrophone_data_paths(borehole='a', year=2019, julian_day=141)
     paths = useful_variables.make_hydrophone_data_paths(borehole='a', year=2019, julian_day=day_number)
+    # paths = useful_variables.make_hydrophone_data_paths(borehole='a', year=2020, julian_day=day_number)
 
     # loads data for all hydrophones
     # converts to pascals
@@ -319,6 +320,8 @@ if __name__ == '__main__':
             ,'second_arrival':dates.num2date(e.hphone2_time)
             ,'dt':(dates.num2date(e.hphone1_time) - dates.num2date(e.hphone2_time)).total_seconds()
             ,'parrival':e.parrival
+            ,'max_amp':e.stream[e.first_hydrophone_id].data.max()
+            ,'cum_amp':abs(e.stream[e.first_hydrophone_id].data).cumsum()[-1]
         }
         return event
 
