@@ -44,7 +44,8 @@ class Event:
     """
     Data holder class for cracking event from hydrophone
     """
-    def __init__(self, id, starttime, init_first_hphone, waveforms, velocity_model=1750):
+    # def __init__(self, id, starttime, init_first_hphone, waveforms, velocity_model=1750):
+    def __init__(self, id, starttime, init_first_hphone, waveforms, velocity_model=1750, hanning=True):
         # INITIALIZE DATA
         self.id = id
         self.data = waveforms
@@ -54,7 +55,8 @@ class Event:
         starttime = dates.num2date(starttime)
         self.starttime = obspy.UTCDateTime(starttime)
         self.first_hydrophone_id = init_first_hphone
-        self.stream = self.get_waveforms(starttime=self.starttime)
+        self.hanning = hanning
+        self.stream = self.get_waveforms(starttime=self.starttime, hanning=self.hanning)
         
         # DEPTH CALCULATION
         self.maxes, self.aic_t, self.aics = self.aic_pick()
@@ -73,7 +75,8 @@ class Event:
         
         
 
-    def get_waveforms(self, starttime):
+    # def get_waveforms(self, starttime):
+    def get_waveforms(self, starttime, hanning):
         """
         Returns a 1 second long trimmed event for the starttime and endtime
         
@@ -92,7 +95,9 @@ class Event:
         starttime = starttime - 0.2
         endtime = starttime + 0.5
         trimmed = self.data.copy().trim(starttime=starttime, endtime=endtime)
-        trimmed.taper(type='hann', max_percentage=0.5)
+        # trimmed.taper(type='hann', max_percentage=0.5)
+        if hanning == True:
+            trimmed.taper(type='hann', max_percentage=0.5)
         return trimmed
     
     def get_pwaveforms(self):
