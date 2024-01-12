@@ -361,6 +361,6 @@ if __name__ == '__main__':
     print('last event time:', df.first_arrival.max())
 
     ## write dataframe to file
-    print('writing picks to file')
+    # print('writing picks to file')
     # df.to_csv('hmmm.csv')
-    df.to_csv(str(day_number)+'hmmm.csv')
+    # df.to_csv(str(day_number)+'hmmm.csv')
