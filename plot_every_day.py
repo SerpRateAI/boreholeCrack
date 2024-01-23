@@ -5,7 +5,8 @@ import pandas as pd
 import matplotlib.dates as dates
 import obspy
 from hydrophone_data_processing import load, useful_variables, plotting, signal_processing
-import event_detector_pipeline as edp
+# import event_detector_pipeline as edp
+import event_pipeline
 import sys
 
 args = sys.argv
@@ -31,7 +32,8 @@ def plot_day(waveforms, year, day):
     plt.close()
     
 if __name__=='__main__':
-    for year in (2019, 2020):
+    # for year in (2019, 2020):
+    for year in (2020,):
         for day in np.arange(1, 366, 1):
             try:
                 waveforms = get_data(year=year, day=day)
