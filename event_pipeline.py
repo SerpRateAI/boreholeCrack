@@ -327,7 +327,7 @@ if __name__ == '__main__':
             ,'parrival':e.parrival
             ,'max_amp':e.stream[e.first_hydrophone_id].data.max()
             ,'cum_amp':abs(e.stream[e.first_hydrophone_id].data).cumsum()[-1]
-            # this calculates the true origin time and not the arrival time on the hydrophone
+            # this calculates the true origin time and not the arrival time on the hydrophoneg
             ,'origin_time':obspy.UTCDateTime(dates.num2date(e.hphone1_time)) - (e.relative_depth / e.velocity_model)
         }
         return event
