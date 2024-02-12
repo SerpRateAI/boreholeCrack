@@ -41,7 +41,8 @@ def import_catalog(file):
     columns_to_keep = ['id', 'depth', 'relative_depth',
         'first_hydrophone', 'second_hydrophone',
        'arrival_time', 'first_arrival', 'second_arrival', 'dt',
-       'max_amp', 'cum_amp', 'arrival_datetime', 'origin_time']
+       'max_amp', 'cum_amp', 'arrival_datetime', 'origin_time'
+                      ,'init_arrival_time']
     df = pd.read_csv(file)
     df.sort_values(by='first_arrival', inplace=True)
     df['arrival_datetime'] = df.arrival_time.apply(dates.num2date)
