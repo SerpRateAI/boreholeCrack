@@ -18,6 +18,7 @@ import librosa
 import torch
 import matplotlib.dates as mdates
 import datetime
+from Event import Event
 
 vels = []
 depths = []
@@ -41,7 +42,8 @@ def import_catalog(file):
     columns_to_keep = ['id', 'depth', 'relative_depth',
         'first_hydrophone', 'second_hydrophone',
        'arrival_time', 'first_arrival', 'second_arrival', 'dt',
-       'max_amp', 'cum_amp', 'arrival_datetime', 'origin_time']
+       'max_amp', 'cum_amp', 'arrival_datetime', 'origin_time'
+                      ,'init_arrival_time']
     df = pd.read_csv(file)
     df.sort_values(by='first_arrival', inplace=True)
     df['arrival_datetime'] = df.arrival_time.apply(dates.num2date)
@@ -59,7 +61,8 @@ def get_event(event_id, day_number, df, hanning=True):
     df = df.copy()
     e = Event(id=event_id
               , starttime=df.arrival_time.loc[event_id]
-              , init_first_hphone=df.first_hydrophone
+              # , init_first_hphone=df.first_hydrophone
+              , init_first_hphone=df.first_hydrophone.loc[event_id]
               , waveforms=waveforms
               , hanning=hanning
              )
@@ -160,9 +163,18 @@ def plot_event_for_p_pick(event_id, ptime, day_number, catalog):
     plot_50hz_highpass(event=e, ax=ax)
     plot_aic_pick(event=e, ax=ax)
     ax.arrow(x=ptime*1e3, y=0.75, dx=0, dy=-0.6, color='red', head_width=1, head_length=0.05)
-    # print('relative depth:', e.relative_depth)
-    print('origin time:', catalog.origin_time[event_id])
-    vel = e.relative_depth/(obspy.UTCDateTime(catalog.origin_time[event_id]) - ((e.starttime - 0.2) + ptime))
+    
+    # print('relative depth:', e.relative_depth)    
+    # vel = e.relative_depth/(obspy.UTCDateTime(catalog.origin_time[event_id]) - ((e.starttime - 0.2) + ptime))
+    event = catalog.loc[event_id]
+    relative_depth = event.relative_depth
+    origin_time = obspy.UTCDateTime(event.origin_time)
+    first_arrival = obspy.UTCDateTime(event.first_arrival.replace(' ', 'T')) - 0.2
+    vel = relative_depth / (origin_time - (first_arrival + ptime))
+
+    print('origin_time:', origin_time)
+    print('first_arrival:', first_arrival)
+    print('relative_depth:', relative_depth)
     print('p velocity:', vel)
     vels.append(vel)
     depths.append(e.depth)
